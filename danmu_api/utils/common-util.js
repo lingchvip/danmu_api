@@ -227,20 +227,29 @@ export function strictTitleMatch(title, query) {
 }
 
 /**
- * 根据配置选择匹配模式
+ * 标题匹配路由函数：支持严格模式，或 宽松模式下的"包含+相似度"混合策略
  * @param {string} title - 动漫标题
  * @param {string} query - 搜索关键词
  * @returns {boolean} 是否匹配
  */
 export function titleMatches(title, query) {
-  if (globals.strictTitleMatch) {
-    return strictTitleMatch(title, query);
-  } else {
-    // 宽松模糊匹配（规范化空格后进行匹配）
-    const normalizedTitle = normalizeSpaces(title);
-    const normalizedQuery = normalizeSpaces(query);
-    return normalizedTitle.includes(normalizedQuery);
-  }
+  // 策略1：严格模式仅允许头部或完全匹配
+  if (globals.strictTitleMatch) return strictTitleMatch(title, query);
+
+  // 预处理：移除干扰字符并转小写，消除格式与大小写差异
+  const t = normalizeSpaces(title).toLowerCase();
+  const q = normalizeSpaces(query).toLowerCase();
+
+  // 策略2：包含匹配优先 (性能最优且准确，只要完整包含即匹配)
+  if (t.includes(q)) return true;
+
+  // 策略3：相似度匹配 (阈值0.8)
+  // 解决"和/与"等翻译差异，只要搜索词中 大于 80% 的字符出现在标题里，即视为匹配
+  const qSet = new Set(q);
+  const tSet = new Set(t);
+  const matchCount = [...qSet].reduce((acc, char) => acc + (tSet.has(char) ? 1 : 0), 0);
+  
+  return (matchCount / qSet.size) > 0.8;
 }
 
 /**
@@ -254,6 +263,11 @@ export function validateType(value, expectedType) {
   if (expectedType === "array") {
     if (!Array.isArray(value)) {
       throw new TypeError(`${value} 必须是一个数组，但传入的是 ${fieldName}`);
+    }
+  } else if (expectedType === "boolean") {
+    // 对于 boolean 类型，允许任何可转换为布尔值的类型（number, boolean）
+    if (typeof value !== "boolean" && typeof value !== "number") {
+      throw new TypeError(`${value} 必须是 boolean 或 number，但传入的是 ${fieldName}`);
     }
   } else if (typeof value !== expectedType) {
     throw new TypeError(`${value} 必须是 ${expectedType}，但传入的是 ${fieldName}`);

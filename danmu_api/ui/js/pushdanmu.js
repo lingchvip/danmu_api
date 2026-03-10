@@ -2,6 +2,36 @@
 export const pushDanmuJsContent = /* javascript */ `
 // 推送弹幕功能相关
 
+// 从环境变量获取默认推送地址
+function getDefaultPushUrl(config) {
+    const pushUrl = config.originalEnvVars?.DANMU_PUSH_URL || '';
+    return pushUrl.trim();
+}
+
+// 设置默认推送地址
+function setDefaultPushUrl(config) {
+    const defaultPushUrl = getDefaultPushUrl(config);
+    if (defaultPushUrl) {
+        const pushUrlInput = document.getElementById('push-url');
+        if (pushUrlInput && !pushUrlInput.value) {
+            pushUrlInput.value = defaultPushUrl;
+        }
+    }
+}
+
+// 初始化推送弹幕界面
+function initPushDanmuInterface() {
+    const searchKeywordInput = document.getElementById('push-search-keyword');
+    if (searchKeywordInput) {
+        // 添加回车键搜索事件监听
+        searchKeywordInput.addEventListener('keypress', function(event) {
+            if (event.key === 'Enter') {
+                searchAnimeForPush();
+            }
+        });
+    }
+}
+
 // 搜索动漫用于推送
 function searchAnimeForPush() {
     const keyword = document.getElementById('push-search-keyword').value.trim();
